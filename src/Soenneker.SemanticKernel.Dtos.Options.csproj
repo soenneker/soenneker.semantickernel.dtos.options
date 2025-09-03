@@ -43,6 +43,6 @@
 
     <ItemGroup>
       <PackageReference Include="Microsoft.SemanticKernel.Abstractions" Version="1.64.0" />
-      <PackageReference Include="Soenneker.SemanticKernel.Enums.KernelType" Version="3.0.6" />
+      <PackageReference Include="Soenneker.SemanticKernel.Enums.KernelType" Version="3.0.7" />
     </ItemGroup>
 </Project>
