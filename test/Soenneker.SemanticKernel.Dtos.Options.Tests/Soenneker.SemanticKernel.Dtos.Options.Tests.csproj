@@ -15,7 +15,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\Soenneker.SemanticKernel.Dtos.Options.csproj" />
+        <ProjectReference Include="..\..\src\Soenneker.SemanticKernel.Dtos.Options\Soenneker.SemanticKernel.Dtos.Options.csproj" />
     </ItemGroup>
 
     <ItemGroup>
