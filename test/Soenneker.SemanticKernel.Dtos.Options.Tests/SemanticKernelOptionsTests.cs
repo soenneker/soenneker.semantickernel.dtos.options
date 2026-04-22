@@ -1,11 +1,10 @@
-﻿using Soenneker.Tests.Unit;
-using Xunit;
+using Soenneker.Tests.Unit;
 
 namespace Soenneker.SemanticKernel.Dtos.Options.Tests;
 
 public sealed class SemanticKernelOptionsTests : UnitTest
 {
-    [Fact]
+    [Test]
     public void Default()
     {
 
