@@ -5,33 +5,67 @@
 
 # Soenneker.SemanticKernel.Dtos.Options
 
-Options for creating a Microsoft.SemanticKernel.Kernel instance.
+A shared configuration object for constructing Semantic Kernel instances and carrying model policy metadata.
 
-## Install
+## Installation
 
 ```bash
 dotnet add package Soenneker.SemanticKernel.Dtos.Options
 ```
 
-## What you get
+## Usage
 
-- `SemanticKernelOptions` — Options for creating a Microsoft.SemanticKernel.Kernel instance.
+```csharp
+using Microsoft.SemanticKernel;
+using Soenneker.SemanticKernel.Dtos.Options;
+using Soenneker.SemanticKernel.Enums.KernelType;
 
-## API at a glance
+var options = new SemanticKernelOptions
+{
+    ModelId = "primary-chat-model",
+    Endpoint = "https://models.example.com",
+    ApiKey = configuration["Models:ApiKey"],
+    Type = KernelType.Chat,
+    RequestsPerMinute = 60,
+    TokensPerDay = 100_000,
+    MaxTokens = 2_000,
+    Temperature = 0.2,
+    KernelFactory = static (options, cancellationToken) =>
+    {
+        IKernelBuilder builder = Kernel.CreateBuilder();
 
-| API | What it does | Result / important behavior |
-| --- | --- | --- |
-| `SemanticKernelOptions.ModelId` | The model identifier (if applicable). | The model identifier (if applicable). |
-| `SemanticKernelOptions.Endpoint` | The endpoint (if applicable). | The endpoint (if applicable). |
-| `SemanticKernelOptions.ApiKey` | The API key required to authenticate (if applicable). | The API key required to authenticate (if applicable). |
-| `SemanticKernelOptions.Type` | The type of kernel to use, such as Chat, Completion, Embedding, Image, etc. Determines how the model is initialized and what capabilities it provides. | The type of kernel to use, such as Chat, Completion, Embedding, Image, etc. Determines how the model is initialized and what capabilities it provides. |
-| `SemanticKernelOptions.ConfigureKernel` | Optional asynchronous delegate to further configure the kernel after creation. | Optional asynchronous delegate to further configure the kernel after creation. |
-| `SemanticKernelOptions.KernelFactory` | Optional delegate that creates a custom KernelBuilder. This delegate is always called (if provided) and allows you to inject connectors, plugins, etc. | Optional delegate that creates a custom KernelBuilder. This delegate is always called (if provided) and allows you to inject connectors, plugins, etc. |
-| `SemanticKernelOptions.ConfigureBuilder` | Optional delegate to further customize the KernelBuilder before building the kernel. Leave unset if no additional configuration is needed. | Optional delegate to further customize the KernelBuilder before building the kernel. Leave unset if no additional configuration is needed. |
-| `SemanticKernelOptions.RequestsPerSecond` | Maximum number of requests allowed per second. Used for rate limiting. | Maximum number of requests allowed per second. Used for rate limiting. |
-| `SemanticKernelOptions.RequestsPerMinute` | Maximum number of requests allowed per minute. Used for rate limiting. | Maximum number of requests allowed per minute. Used for rate limiting. |
-| `SemanticKernelOptions.RequestsPerDay` | Maximum number of requests allowed per day. Used for rate limiting. | Maximum number of requests allowed per day. Used for rate limiting. |
-| `SemanticKernelOptions.TokensPerDay` | Maximum number of tokens allowed per day (input + output). Used for quota control. | Maximum number of tokens allowed per day (input + output). Used for quota control. |
-| `SemanticKernelOptions.TokensPerMinute` | Maximum number of tokens allowed per minute (optional). Used for burst control. | Maximum number of tokens allowed per minute (optional). Used for burst control. |
-| `SemanticKernelOptions.MaxTokens` | The maximum number of tokens the model is allowed to generate in a single response. | The maximum number of tokens the model is allowed to generate in a single response. |
-| `SemanticKernelOptions.Temperature` | Sampling temperature (0.0 - 2.0). Higher values produce more randomness; lower values are more deterministic. | Sampling temperature (0.0 - 2.0). Higher values produce more randomness; lower values are more deterministic. |
+        // Add the connector for options.ModelId, Endpoint, and ApiKey.
+
+        return ValueTask.FromResult(builder);
+    },
+    ConfigureBuilder = builder =>
+    {
+        // Add pre-build services or plugins.
+    },
+    ConfigureKernel = async (kernel, cancellationToken) =>
+    {
+        // Perform asynchronous post-build setup.
+        await ValueTask.CompletedTask;
+    }
+};
+```
+
+## What applies the values
+
+`SemanticKernelOptions` only stores values. It does not create a connector, enforce request/token limits, or apply `MaxTokens` and `Temperature` to execution settings by itself. The cache, pool, connector factory, or request pipeline consuming the options must implement those behaviors.
+
+The three delegates define the construction hooks used by Soenneker Semantic Kernel caches and pools:
+
+- `KernelFactory` creates an `IKernelBuilder` and receives the options plus cancellation token.
+- `ConfigureBuilder` runs synchronously before the builder is built.
+- `ConfigureKernel` runs asynchronously after the `Kernel` has been built.
+
+When `KernelFactory` is absent, consumers may create an empty default builder. `ModelId`, `Endpoint`, and `ApiKey` are therefore not automatically meaningful unless the selected consumer or connector reads them.
+
+## Serialization
+
+The scalar configuration properties use explicit camel-case JSON names. `KernelFactory`, `ConfigureBuilder`, and `ConfigureKernel` are excluded from JSON because delegates cannot be represented as portable configuration.
+
+`ApiKey` is included in JSON serialization. Do not serialize this object into logs, client responses, telemetry, or unprotected storage. Prefer resolving secrets from a protected configuration provider at the point where the options are built.
+
+The DTO does not validate ranges or required combinations. Validate provider-specific requirements—such as a positive limit, supported temperature range, absolute endpoint, or required API key—before using the options.
